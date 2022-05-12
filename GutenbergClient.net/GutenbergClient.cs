@@ -13,14 +13,16 @@ namespace GutenbergClient.net
         private HttpClient httpClient;
         private GutenbergConfig config;
 
-        //public delegate void CatalogDownloadedEvent(string downloadPath);
-        //public event CatalogDownloadedEvent OnCatalogDownloaded;
+        private const string localCatalogFile = ".localCatalogFile.txt";
 
+        private GutenbergCatalogIndex catalogIndex;
+
+        public GutenbergCatalogIndex CatalogIndex { get { return catalogIndex; } }
 
         public static GutenbergClient GetClient()
         {
             // defaults
-            return GetClient(GutenbergConfig.DefaultClient,
+            return GetClient(GutenbergConfig.DefaultConfig,
                 new HttpClient());
         }
 
@@ -43,29 +45,33 @@ namespace GutenbergClient.net
             this.config = config;
 
             // set user agent for scraping
-            this.httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36");
+            this.httpClient.DefaultRequestHeaders.Add("User-Agent", this.config.HttpUserAgent);
 
-
+            this.catalogIndex = new GutenbergCatalogIndex();
         }
 
         #region Catalog Apis
 
-        public async Task CatalogDownloadAsync(string downloadFile)
+        public async Task CatalogDownloadAsync(string localCatalogFile = localCatalogFile)
         {
             var catalogUri = config.CatalogCsvUrl;
 
+            var downloadFileFullPath = Path.Combine(config.LocalCacheDirectory, localCatalogFile);
+
             var response = await this.httpClient.GetAsync(catalogUri);
-            using (var fs = new FileStream(downloadFile, FileMode.Create))
+            using (var fs = new FileStream(downloadFileFullPath, FileMode.Create))
             {
                 await response.Content.CopyToAsync(fs);
             }
         }
 
-        public async Task<IList<PgCatalogRecord>> LoadCatalogFromCacheAsync(string localCacheFile)
+        public async Task<IList<PgCatalogRecord>> LoadCatalogFromCacheAsync(string localCatalogFile = localCatalogFile,
+            bool doNotIndex = false)
         {
+            var localCacheFileFullPath = Path.Combine(config.LocalCacheDirectory, localCatalogFile);
             var result = new List<PgCatalogRecord>();
 
-            using (var reader = new StreamReader(localCacheFile))
+            using (var reader = new StreamReader(localCacheFileFullPath))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
                 csv.Read();
@@ -94,8 +100,15 @@ namespace GutenbergClient.net
                         rawBookshelves: rawBookshelves);
 
                     result.Add(catalogItem);
+
+                    if (!doNotIndex)
+                    {
+                        this.catalogIndex.BuildIndex(catalogItem);
+                    }
                 }
             }
+
+            this.catalogIndex.TrimIndex();
 
             return result;
         }
@@ -111,8 +124,25 @@ namespace GutenbergClient.net
         #endregion Catalog Apis
 
 
-        #region Harvest Apis
+        #region Catalog Search Apis
 
-        #endregion Harvest Apis
+
+        public async Task<IList<string>> SearchByAuthor(string authorQuerystring)
+        {
+            var results = new List<string>();
+
+            foreach (var author in this.catalogIndex.AuthorLookup.Keys)
+            {
+                if (author.Contains(authorQuerystring, StringComparison.OrdinalIgnoreCase))
+                {
+                    results.Add(author);
+                }
+            }
+
+            return await Task.FromResult(results);
+        }
+
+        #endregion Catalog Search Apis
+
     }
 }

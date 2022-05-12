@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace GutenbergClient.net.Tests
 {
-    public class Tests
+    public class GutenbergClientTests
     {
         private Mock<HttpMessageHandler> mockMessageHandlerSuccess;
 
@@ -74,7 +74,7 @@ namespace GutenbergClient.net.Tests
         public async Task CatalogLoadFromCacheTest()
         {
             var httpClient = new HttpClient(mockMessageHandlerSuccess.Object);
-            var gc = GutenbergClient.GetClient(GutenbergConfig.DefaultClient, httpClient);
+            var gc = GutenbergClient.GetClient(GutenbergConfig.DefaultConfig, httpClient);
 
             var tempFile = Path.Combine(Path.GetTempPath(), $"GutenbergCatalog-{DateTime.Now.ToString("yyyyMMddTHH")}.csv");
             await gc.CatalogDownloadAsync(tempFile);
@@ -94,13 +94,13 @@ namespace GutenbergClient.net.Tests
         {
             // real one
             var httpClient = new HttpClient();
-            var gc = GutenbergClient.GetClient(GutenbergConfig.DefaultClient, httpClient);
+            var gc = GutenbergClient.GetClient(GutenbergConfig.DefaultConfig, httpClient);
 
-            var tempFile = Path.Combine(Path.GetTempPath(), $"GutenbergCatalog-real-{DateTime.Now.ToString("yyyyMMddTHH")}.csv");
+            var tempFile = $"GutenbergCatalog-real-{DateTime.Now.ToString("yyyyMMddTHH")}.csv";
             await gc.CatalogDownloadAsync(tempFile);
 
             // assert file exists
-            Assert.IsTrue(File.Exists(tempFile), $"Catalog File {tempFile} does not exist");
+            Assert.IsTrue(File.Exists(@".\.gutenberg\" + tempFile), $"Catalog File {tempFile} does not exist");
 
             var records = await gc.LoadCatalogFromCacheAsync(tempFile);
 

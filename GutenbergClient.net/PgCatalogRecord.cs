@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Linq.Expressions;
 
 namespace GutenbergClient.net
 {
@@ -27,7 +28,25 @@ namespace GutenbergClient.net
         public DateTime AuthorBirthYear { get; set; }
         public DateTime AuthorDeathYear { get; set; }
         public string[] Subjects { get; set; }
-        public string[] BookShelves { get; set; }
+
+        private string[] bookshelves;
+        public string[] BookShelves
+        {
+            get
+            {
+                if (bookshelves == null && !string.IsNullOrWhiteSpace(this.RawBookshelves))
+                {
+                    lock (this)
+                    {
+                        if (bookshelves == null)
+                        {
+                            bookshelves = GetBookshelfDetails();
+                        }
+                    }
+                }
+                return bookshelves;
+            }
+        }
 
         public DateTime? IssuedDate { get; private set; }
 
@@ -78,6 +97,18 @@ namespace GutenbergClient.net
             if (DateTime.TryParse(rawIssued, out issuedDate))
                 this.IssuedDate = issuedDate;
 
+        }
+
+
+        private string[] GetBookshelfDetails()
+        {
+            if (string.IsNullOrWhiteSpace(this.RawBookshelves))
+            {
+                return null;
+            }
+
+            var shelves = this.RawBookshelves.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            return shelves.Select(s => s.Trim()).ToArray();
         }
 
         public List<AuthorInfo> GetAuthorDetails()

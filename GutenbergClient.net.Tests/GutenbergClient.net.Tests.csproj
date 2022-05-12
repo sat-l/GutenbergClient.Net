@@ -18,6 +18,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="data\GutenbergCatalog-full.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="data\harvestdata.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="data\pg_catalog_10lines.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

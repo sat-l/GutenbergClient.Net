@@ -7,34 +7,68 @@ namespace GutenbergClient.net
 {
     public sealed class GutenbergConfig
     {
-        public Uri GutenbergUrl { get; set; }
+        public string GutenbergUrl { get; set; }
 
         public Uri CatalogCsvUrl
         {
             get
             {
-                return new Uri(GutenbergUrl, gutenbergFeedPath + pg_catalog_csv);
+                return new Uri(GutenbergUrl + gutenbergFeedPath + pg_catalog_csv);
             }
         }
 
-        public static readonly GutenbergConfig DefaultClient = new GutenbergConfig();
+        public Uri RobotUrl
+        {
+            get
+            {
+                return new Uri(GutenbergUrl + RobotUrl);
+            }
+        }
 
-        #region Gutenberg Site constsants
+
+        /// <summary>
+        /// Get Harvest url
+        /// </summary>
+        /// <returns></returns>
+        public string GetHarvestUrl(string harvestPathWithFilter)
+        {
+            var url = $"{defaultGutenbergUrl}{robotPath}{harvestPath}";
+            if (!string.IsNullOrWhiteSpace(harvestPathWithFilter))
+                url += harvestPathWithFilter;
+
+            return url;
+        }
+
+        public string LocalCacheDirectory { get; private set; }
+
+
+        public string HttpUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36";
+
+
+        public static readonly GutenbergConfig DefaultConfig = new GutenbergConfig();
+
+        #region Gutenberg Site constants
         private const string defaultGutenbergUrl = "https://www.gutenberg.org/";
         private const string userAgent = "";
         private const string gutenbergFeedPath = "cache/epub/feeds/";
         private const string pg_catalog_csv = "pg_catalog.csv";
         private const string today_rss = "today.rss";
-        #endregion Gutenberg Site constsants
 
-        public GutenbergConfig()
-            : this(defaultGutenbergUrl)
-        {
-        }
+        private const string robotPath = "robot/";
+        private const string harvestPath = "harvest/";
+        private const string fileTypesQueryParam = "?filetypes[]=";
 
-        public GutenbergConfig(string gutenbergUrl)
+        #endregion Gutenberg Site constants
+
+        public GutenbergConfig(string localcCacheDirectory = @".\.gutenberg\")
         {
-            this.GutenbergUrl = new Uri(defaultGutenbergUrl);
+            this.GutenbergUrl = defaultGutenbergUrl;
+            this.LocalCacheDirectory = localcCacheDirectory;
+
+            if (!Directory.Exists(this.LocalCacheDirectory))
+            {
+                Directory.CreateDirectory(this.LocalCacheDirectory);
+            }
         }
     }
 }
